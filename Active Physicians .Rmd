@@ -1,0 +1,199 @@
+---
+title: "proj 2 sta108"
+author: "Owen Bao"
+date: "23/02/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
+```{r}
+getwd()
+setwd("/Users/owen/Downloads/")
+cdi <- read.table("CDI.txt")
+colnames(cdi) <- c("id_num", "county", 
+                   "state", "land_area",
+                   "pop_total", "pop_18_34", 
+                   "pop_65_old", "active_physicians", 
+                   "hospital_beds", "serious_crimes",
+                   "pct_hsgrad", "pct_bachelors", 
+                   "pct_poverty", "pct_unemp", 
+                   "income_percap", "income_total",
+                   "region")
+cdi <- cdi %>%
+  group_by(pop_total, land_area) %>%
+  mutate(pop_density = pop_total/land_area)
+  head(cdi)
+  
+
+  
+
+
+#part a
+stem(cdi$pop_total)
+stem(cdi$land_area)
+stem(cdi$income_total)
+stem(cdi$pop_density)
+stem(cdi$pop_65_old)
+
+```
+
+```{r}
+
+#part b
+cdi_model1 <- data.frame(cdi$active_physicians,cdi$pop_total, cdi$land_area,cdi$income_total)
+cdi_model2 <-data.frame(cdi$active_physicians, cdi$pop_density, cdi$pop_65_old, cdi$income_total)
+pairs(cdi_model1)
+cor(cdi_model1)
+pairs(cdi_model2)
+cor(cdi_model2)
+```
+
+```{r}
+#part c 
+
+model1 <- lm(cdi$active_physicians ~ cdi$pop_total + cdi$land_area + cdi$income_total, data = cdi)
+model2 <- lm(cdi$active_physicians ~ cdi$pop_density + cdi$pop_65_old + cdi$income_total, data = cdi)
+```
+
+```{r}
+#part d 
+summary(model1)$r.squared
+summary(model2)$r.squared
+```
+
+```{r}
+#part e
+residuals_model1 <- residuals(model1)
+residuals_model2 <- residuals(model2)
+y_hat = model1$fitted.values
+plot(x=y_hat, y=residuals_model1, xlab='fitted values', ylab='residuals')
+abline(h=0, col='red')
+y_hat2 = model2$fitted.values
+plot(x=y_hat2, y=residuals_model2, xlab='fitted values', ylab='residuals')
+abline(h=0, col='red')
+
+
+#rm1
+plot(cdi$pop_total,residuals_model1,
+     main = "Model 1: Residuals vs X1")
+plot(cdi$land_area,residuals_model1,
+     main = "Model 1: Residuals vs X2")
+plot(cdi$income_total,residuals_model1,
+     main = "Model 1: Residuals vs X3")
+
+#rm2
+plot(cdi$pop_density,residuals_model2,
+     main = "Model 2: Residuals vs X1")
+plot(cdi$pop_65_old,residuals_model2,
+     main = "Model 2: Residuals vs X2")
+plot(cdi$income_total,residuals_model2,
+     main = "Model 2: Residuals vs X3")
+
+#rm1
+residuals_model1 <- residuals(model1)
+residuals_model2 <- residuals(model2)
+plot(exp(log(cdi$pop_total)+log(cdi$land_area)), residuals_model1,
+main = "Model 1: Residuals vs X1*X2")
+plot(exp(log(cdi$pop_total)+log(cdi$income_total)), residuals_model1,
+main = "Model 1: Residuals vs X1*X3")
+plot(cdi$land_area*cdi$income_total, residuals_model1,
+     main = "Model 1: Residuals vs X2*X3")
+
+#rm2
+plot(cdi$pop_density*cdi$pop_65_old, residuals_model2,
+     main = "Model 2: Residuals vs X1*X2")
+plot(cdi$pop_density*cdi$income_total, residuals_model2,
+      main = "Model 2: Residuals vs X1*X3")
+plot(cdi$pop_65_old*cdi$income_total, residuals_model2,
+      main = "Model 2: Residuals vs X2*X3")
+
+#rm1
+qqnorm(residuals(model1))
+qqline(residuals(model1), col = "red")
+
+#rm2
+qqnorm(residuals(model2))
+qqline(residuals(model2), col = "red")
+```
+
+
+```{r}
+#part f
+
+model3 <- lm(active_physicians ~ pop_total + land_area + income_total + pop_total*land_area + pop_total*income_total + land_area*income_total, data = cdi)
+model4 <- lm(active_physicians ~ pop_density + pop_65_old + income_total + pop_density*pop_65_old + pop_density*income_total + pop_65_old*income_total , data = cdi)
+
+summary(model3)$r.squared
+summary(model4)$r.squared
+```
+
+```{r}
+#part a
+reduced=lm(active_physicians~pop_total+income_total, data=cdi)
+full= lm(active_physicians~pop_total+income_total+land_area, data=cdi)
+#SSR of land area= 4063370
+r2landarea= 4063370/140967081
+
+knitr::kable(anova(reduced))
+knitr::kable(anova(reduced,full))
+
+full1= lm(active_physicians~pop_total+income_total+pop_65_old, data=cdi)
+knitr::kable(anova(reduced,full1))
+#SSR of pop_65_old = 541647.3
+r2pop65=  541647.3/140967081
+
+full2= lm(active_physicians~pop_total+income_total+hospital_beds, data=cdi)
+knitr::kable(anova(reduced,full2))
+#SSR of hospital beds = 78070132
+r2hospitalbeds =78070132/140967081
+
+r2landarea
+r2pop65
+r2hospitalbeds 
+#part b
+anova(reduced)
+anova(full)
+anova(full1)
+anova(full2)
+
+#part c
+a= 78070132/144259
+a
+Fstat=541.1801
+qf(1-0.01,1,436)
+```
+
+```{r}
+#part d 
+reduced=lm(active_physicians~pop_total+income_total, data=cdi)
+full = lm(active_physicians~pop_total+income_total + land_area +pop_65_old, data=cdi)
+full1 = lm(active_physicians~pop_total+income_total + land_area + hospital_beds , data=cdi)
+full2 = lm(active_physicians~pop_total+income_total + pop_65_old + hospital_beds , data=cdi)
+anova(reduced,full)
+anova(reduced,full1)
+anova(reduced,full2)
+r2_x3x4=4671904/140967081
+r2_x3x5= 78352775/140967081
+r2_x4x5 = 79544288/140967081
+r2_x3x4
+r2_x3x5
+r2_x4x5
+
+f_x3x4=7.4554
+f_x3x5=272.17
+f_x4x5=281.67
+fcrit_1= qf(1-0.01,2,435)
+fcrit_1
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
